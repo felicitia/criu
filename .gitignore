@@ -43,3 +43,4 @@ compel/include/asm
 include/common/asm
 include/common/config.h
 build/**
+.DS_Store
