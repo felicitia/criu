@@ -3,6 +3,7 @@
 echo "running script: build_protobuf.sh"
 
 . ./config.sh
+. ./util.sh
 
 PROTOBUF_DOWNLOAD_URL="https://github.com/protocolbuffers/protobuf/releases/download/v3.5.1/protobuf-all-3.5.1.tar.gz"
 PROTOBUF_C_DOWNLOAD_URL="https://github.com/protobuf-c/protobuf-c/releases/download/v1.4.1/protobuf-c-1.4.1.tar.gz"
@@ -121,13 +122,6 @@ build_protobufC_riscv64 () {
     make && make install
 }
 
-measure_func_time () {
-    start=$(date +%s.%N)
-    ($1) 
-    duration=$(echo "$(date +%s.%N) - $start" | bc)
-    execution_time=`printf "%.2f seconds" $duration`
-    echo "$1 Execution Time: $execution_time"
-}
 
 # download source code and extract it, including both protobuf and protobuf-c
 download_extract () {

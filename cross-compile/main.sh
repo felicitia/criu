@@ -4,3 +4,5 @@
 cd "$(dirname "$0")" 
 
 ./build_protobuf.sh 
+
+./build_libnet.sh
