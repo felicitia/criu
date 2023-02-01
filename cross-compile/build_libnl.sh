@@ -17,7 +17,7 @@ download_extract () {
 
 
 # build the arm64 version 
-build_libcap_arm64 () {
+build_libnl_arm64 () {
     # go to the folder where the extracted files are
     cd "$BUILD_ROOT_DIR/libnl-3.2.25" 
 
@@ -30,19 +30,19 @@ build_libcap_arm64 () {
     AR=aarch64-linux-gnu-ar \
     STRIP=aarch64-linux-gnu-strip \
     ../configure --prefix=$BUILD_ROOT_DIR/arm64_pb_install \
-    --disable-shared --enable-static --host=aarch64-unknown-linux-gnu
+    --enable-static --host=aarch64-unknown-linux-gnu
 
     make && make install
 }
 
 
 main () {
-    download_extract
+    # download_extract
 
     case $TARGET_ARCH in
         "aarch64" | "arm64")
-            echo "building libcap for $TARGET_ARCH"
-            measure_func_time build_libcap_arm64
+            echo "building libnl for $TARGET_ARCH"
+            measure_func_time build_libnl_arm64
             ;;
         
         "riscv64")
