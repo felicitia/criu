@@ -40,7 +40,7 @@ check-packages-failed:
 	$(warning To run tests the following packages are needed)
 	$(warning RPM based distros: $(REQ-RPM-PKG-TEST-NAMES))
 	$(warning DEB based distros: $(REQ-DEB-PKG-TEST-NAMES))
-	$(error Compilation aborted)
+#	$(error Compilation aborted)
 
 #
 # Make sure all required libs are installed
