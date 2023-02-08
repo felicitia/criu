@@ -132,7 +132,7 @@ ifeq ($(DEBUG),1)
         DEFINES		+= -DCR_DEBUG
         CFLAGS		+= -O0 -ggdb3
 else
-        CFLAGS		+= -O2 -g -I/home/yixue/cross-compile-arm64-artifacts/protobuf/arm64_pb_install/include -I/home/yixue/cross-compile-arm64-artifacts/libnet/arm64_pb_install/include
+		CFLAGS		+= -O2 -g -I/home/yixue/cross-compile-arm64-artifacts/arm64_pb_install/include -I/usr/aarch64-linux-gnu/include -L/home/yixue/cross-compile-arm64-artifacts/arm64_pb_install/lib
 endif
 
 ifeq ($(GMON),1)
