@@ -19,6 +19,9 @@ extern int apply_memfd_seals(void);
 
 extern int prepare_memfd_inodes(void);
 
+/* yixue code to enable MEMFD CREATE */
+#define CONFIG_HAS_MEMFD_CREATE
+
 #ifdef CONFIG_HAS_MEMFD_CREATE
 #include <sys/mman.h>
 #else
