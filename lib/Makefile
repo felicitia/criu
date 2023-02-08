@@ -19,7 +19,8 @@ ldflags-so		+= -lprotobuf-c
 
 lib/c/$(CRIU_SO): lib/c/built-in.o
 	$(call msg-link, $@)
-	$(Q) $(CC) -shared $(cflags-so) -o $@ $^ $(ldflags-so) $(LDFLAGS)
+	# $(Q) $(CC) -shared $(cflags-so) -o $@ $^ $(ldflags-so) $(LDFLAGS)
+	$(Q) $(CC) -shared $(cflags-so) -o $@ $^ $(ldflags-so) # yixue change
 lib/c/$(CRIU_A): lib/c/built-in.o
 	$(call msg-link, $@)
 	$(Q) $(AR) rcs $@ $^
