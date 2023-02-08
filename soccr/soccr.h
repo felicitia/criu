@@ -10,6 +10,11 @@
 /* All packets with this mark have not to be blocked. */
 #define SOCCR_MARK 0xC114
 
+/* yixue code to avoid redefinition in tcp.h defined in netinet */
+#define CONFIG_HAS_TCP_REPAIR_WINDOW
+#define CONFIG_HAS_TCP_REPAIR
+
+
 #ifndef CONFIG_HAS_TCP_REPAIR_WINDOW
 struct tcp_repair_window {
 	uint32_t snd_wl1;
