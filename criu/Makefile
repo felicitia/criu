@@ -85,7 +85,8 @@ $(obj)/%: pie
 
 $(obj)/criu: $(PROGRAM-BUILTINS)
 	$(call msg-link, $@)
-	$(Q) $(CC) $(CFLAGS) $^ $(LIBS) $(WRAPFLAGS) $(LDFLAGS) $(GMONLDOPT) -rdynamic -o $@
+	# $(Q) $(CC) $(CFLAGS) $^ $(LIBS) $(WRAPFLAGS) $(LDFLAGS) $(GMONLDOPT) -rdynamic -o $@
+	$(Q) $(CC) $(CFLAGS) $^ $(LIBS) $(WRAPFLAGS) $(GMONLDOPT) -rdynamic -o $@ #yixue change
 
 UNIT-BUILTINS		+= $(obj)/util.o
 UNIT-BUILTINS		+= $(obj)/config.o
