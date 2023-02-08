@@ -14,6 +14,11 @@
 
 #include "common/config.h"
 
+/* yixue code so that RSEQ is defined*/
+#ifndef CONFIG_HAS_NO_LIBC_RSEQ_DEFS
+#define CONFIG_HAS_NO_LIBC_RSEQ_DEFS
+#endif
+
 #ifdef CONFIG_HAS_NO_LIBC_RSEQ_DEFS
 /*
  * linux/rseq.h
