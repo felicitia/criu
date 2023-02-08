@@ -27,26 +27,26 @@ build_libnet_arm64 () {
     CC=aarch64-linux-gnu-gcc \
     CXX=aarch64-linux-gnu-g++ \
     ../configure --prefix=$BUILD_ROOT_DIR/arm64_pb_install \
-    --disable-shared --enable-static --host=aarch64-linux
+    --enable-static --host=aarch64-unknown-linux-gnu
 
     make && make install
 }
 
 
-build_libnet_riscv64 () {
-    # go to the folder where the extracted files are
-    cd "$BUILD_ROOT_DIR/libnet-1.2" 
+# build_libnet_riscv64 () {
+#     # go to the folder where the extracted files are
+#     cd "$BUILD_ROOT_DIR/libnet-1.2" 
 
-    mkdir -p riscv64_build
-    cd riscv64_build
+#     mkdir -p riscv64_build
+#     cd riscv64_build
     
-    CC=riscv64-unknown-linux-gnu-gcc \
-    CXX=riscv64-unknown-linux-gnu-g++ \
-    ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
-    --disable-shared --enable-static --host=riscv64-unknown-linux
+#     CC=riscv64-unknown-linux-gnu-gcc \
+#     CXX=riscv64-unknown-linux-gnu-g++ \
+#     ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
+#     --enable-static --host=riscv64-unknown-linux
 
-    make && make install
-}
+#     make && make install
+# }
 
 main () {
     download_extract
@@ -57,10 +57,10 @@ main () {
             measure_func_time build_libnet_arm64
             ;;
         
-        "riscv64")
-            echo "building libnet for $TARGET_ARCH"
-            measure_func_time build_libnet_riscv64
-            ;;
+        # "riscv64")
+        #     echo "building libnet for $TARGET_ARCH"
+        #     measure_func_time build_libnet_riscv64
+        #     ;;
 
         *)
             echo "the target architecture $TARGET_ARCH is not supported, exit the program..."

@@ -37,7 +37,7 @@ build_libnl_arm64 () {
 
 
 main () {
-    # download_extract
+    download_extract
 
     case $TARGET_ARCH in
         "aarch64" | "arm64")
@@ -45,9 +45,9 @@ main () {
             measure_func_time build_libnl_arm64
             ;;
         
-        "riscv64")
-            echo "RISC-V is not supported yet but will be!"
-            ;;
+        # "riscv64")
+        #     echo "RISC-V is not supported yet but will be!"
+        #     ;;
 
         *)
             echo "the target architecture $TARGET_ARCH is not supported, exit the program..."

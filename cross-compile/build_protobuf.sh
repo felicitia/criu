@@ -36,7 +36,7 @@ build_protobufC_x86_64 () {
     CPPFLAGS=$(pkg-config --cflags protobuf) \
     LDFLAGS=$(pkg-config --libs protobuf) \
     ../configure --prefix=$BUILD_ROOT_DIR/x86_64_pb_install \
-    --disable-shared --enable-static
+    --enable-static
 
     make && make install
 }
@@ -75,49 +75,49 @@ build_protobufC_arm64 () {
     CPPFLAGS=$(pkg-config --cflags protobuf) \
     LDFLAGS=$(pkg-config --libs protobuf) \
     ../configure --prefix=$BUILD_ROOT_DIR/arm64_pb_install \
-    --disable-shared --enable-static --disable-protoc --host=aarch64-unknown-linux-gnu
+    --enable-static --disable-protoc --host=aarch64-unknown-linux-gnu
 
     make && make install
 }
 
 
 
-# build the riscv64 version of the protobuf libraries
-build_protobuf_riscv64 () {
-    # go to the folder where the extracted files are
-    cd "$BUILD_ROOT_DIR/protobuf-3.5.1" 
+# # build the riscv64 version of the protobuf libraries
+# build_protobuf_riscv64 () {
+#     # go to the folder where the extracted files are
+#     cd "$BUILD_ROOT_DIR/protobuf-3.5.1" 
 
-    mkdir -p riscv64_build
-    cd riscv64_build
+#     mkdir -p riscv64_build
+#     cd riscv64_build
     
-    CC=riscv64-unknown-linux-gnu-gcc \
-    CXX=riscv64-unknown-linux-gnu-g++ \
-    ../configure --host=riscv64-unknown-linux \
-    --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
-    --with-protoc=$BUILD_ROOT_DIR/x86_64_pb_install/bin/protoc
+#     CC=riscv64-unknown-linux-gnu-gcc \
+#     CXX=riscv64-unknown-linux-gnu-g++ \
+#     ../configure --host=riscv64-unknown-linux \
+#     --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
+#     --with-protoc=$BUILD_ROOT_DIR/x86_64_pb_install/bin/protoc
     
-    make install -j16
-}
+#     make install -j16
+# }
 
-# build the arm64 version of the protobuf-c
-build_protobufC_riscv64 () {
-    # go to the folder where the extracted files are
-    cd "$BUILD_ROOT_DIR/protobuf-c-1.4.1"
-    mkdir -p riscv64_build
-    cd riscv64_build
+# # build the arm64 version of the protobuf-c
+# build_protobufC_riscv64 () {
+#     # go to the folder where the extracted files are
+#     cd "$BUILD_ROOT_DIR/protobuf-c-1.4.1"
+#     mkdir -p riscv64_build
+#     cd riscv64_build
 
-    # change pkg config path
-    export PKG_CONFIG_PATH=$BUILD_ROOT_DIR/riscv64_pb_install/lib/pkgconfig:$PKG_CONFIG_PATH
+#     # change pkg config path
+#     export PKG_CONFIG_PATH=$BUILD_ROOT_DIR/riscv64_pb_install/lib/pkgconfig:$PKG_CONFIG_PATH
 
-    CC=riscv64-unknown-linux-gnu-gcc \
-    CXX=riscv64-unknown-linux-gnu-g++ \
-    CPPFLAGS="pkg-config --cflags protobuf" \
-    LDFLAGS="pkg-config --libs protobuf" \
-    ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
-    --disable-shared --enable-static --disable-protoc --host=riscv64-unknown-linux
+#     CC=riscv64-unknown-linux-gnu-gcc \
+#     CXX=riscv64-unknown-linux-gnu-g++ \
+#     CPPFLAGS="pkg-config --cflags protobuf" \
+#     LDFLAGS="pkg-config --libs protobuf" \
+#     ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
+#     --disable-shared --enable-static --disable-protoc --host=riscv64-unknown-linux
 
-    make && make install
-}
+#     make && make install
+# }
 
 
 # download source code and extract it, including both protobuf and protobuf-c
@@ -148,11 +148,11 @@ main () {
             measure_func_time build_protobufC_arm64
             ;;
         
-        "riscv64")
-            echo "building protobuf for $TARGET_ARCH"
-            measure_func_time build_protobuf_riscv64
-            measure_func_time build_protobufC_riscv64
-            ;;
+        # "riscv64")
+            # echo "building protobuf for $TARGET_ARCH"
+            # measure_func_time build_protobuf_riscv64
+            # measure_func_time build_protobufC_riscv64
+            # ;;
 
         *)
             echo "the target architecture $TARGET_ARCH is not supported, exit the program..."

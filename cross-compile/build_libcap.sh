@@ -28,7 +28,7 @@ build_libcap_arm64 () {
     CXX=aarch64-linux-gnu-g++ \
     CFLAGS="-Os" \
     ../configure --prefix=$BUILD_ROOT_DIR/arm64_pb_install \
-    --disable-shared --enable-static --host=aarch64-unknown-linux-gnu --with-pcap=linux
+    --enable-static --host=aarch64-unknown-linux-gnu --with-pcap=linux
 
     make && make install
 }
@@ -43,9 +43,9 @@ main () {
             measure_func_time build_libcap_arm64
             ;;
         
-        "riscv64")
-            echo "RISC-V is not supported yet but will be!"
-            ;;
+        # "riscv64")
+        #     echo "RISC-V is not supported yet but will be!"
+        #     ;;
 
         *)
             echo "the target architecture $TARGET_ARCH is not supported, exit the program..."
