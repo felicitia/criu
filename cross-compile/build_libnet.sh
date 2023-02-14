@@ -33,34 +33,34 @@ build_libnet_arm64 () {
 }
 
 
-# build_libnet_riscv64 () {
-#     # go to the folder where the extracted files are
-#     cd "$BUILD_ROOT_DIR/libnet-1.2" 
+build_libnet_riscv64 () {
+    # go to the folder where the extracted files are
+    cd "$BUILD_ROOT_DIR/libnet-1.2" 
 
-#     mkdir -p riscv64_build
-#     cd riscv64_build
+    mkdir -p riscv64_build
+    cd riscv64_build
     
-#     CC=riscv64-unknown-linux-gnu-gcc \
-#     CXX=riscv64-unknown-linux-gnu-g++ \
-#     ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
-#     --enable-static --host=riscv64-unknown-linux
+    CC=riscv64-unknown-linux-gnu-gcc \
+    CXX=riscv64-unknown-linux-gnu-g++ \
+    ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
+    --enable-static --host=riscv64-unknown-linux-gnu
 
-#     make && make install
-# }
+    make && make install
+}
 
 main () {
     download_extract
 
     case $TARGET_ARCH in
         "aarch64" | "arm64")
-            echo "building libnet for $TARGET_ARCH"
+            printf "${BCyan}building libnet for $TARGET_ARCH${Color_Off}\n"
             measure_func_time build_libnet_arm64
             ;;
         
-        # "riscv64")
-        #     echo "building libnet for $TARGET_ARCH"
-        #     measure_func_time build_libnet_riscv64
-        #     ;;
+        "riscv64")
+            printf "${BCyan}building libnet for $TARGET_ARCH${Color_Off}\n"
+            measure_func_time build_libnet_riscv64
+            ;;
 
         *)
             echo "the target architecture $TARGET_ARCH is not supported, exit the program..."
