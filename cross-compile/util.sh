@@ -6,5 +6,5 @@ measure_func_time () {
     ($1) 
     duration=$(echo "$(date +%s.%N) - $start" | bc)
     execution_time=`printf "%.2f seconds" $duration`
-    echo "$1 Execution Time: $execution_time"
+    printf "${BGreen}$1 Execution Time: $execution_time${Color_Off}\n"
 }

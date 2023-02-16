@@ -19,7 +19,7 @@ endif
 
 #
 # Supported Architectures
-ifneq ($(filter-out x86 arm aarch64 ppc64 s390 mips,$(ARCH)),)
+ifneq ($(filter-out riscv64 x86 arm aarch64 ppc64 s390 mips,$(ARCH)),)
         $(error "The architecture $(ARCH) isn't supported")
 endif
 

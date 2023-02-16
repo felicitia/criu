@@ -158,7 +158,7 @@ Execution Time: 112s
 
 Script: https://github.com/felicitia/criu/blob/criu-dev/cross-compile/build_criu.sh
 
-## Notes on the issues during cross compiling:
+## Notes on the issues during cross compiling (X86 -> aarch64):
 
 1. need to delete `/criu/compel/plugins/include/uapi/std/syscall-aux.h` and `syscall-aux.S` in the same folder if existed before build 
 
@@ -245,3 +245,24 @@ CFLAGS		+= -O2 -g -I/home/yixue/cross-compile-arm64-artifacts/arm64_pb_install/i
 11. When running on ARM machine, `./criu: error while loading shared libraries: libprotobuf-c.so.1: cannot open shared object file: No such file or directory`
 
 Solution: export LD_LIBRARY_PATH （although only doing that didn't work for me), but `ldconfig` worked (do `sudo ldconfig /home/yixue/Documents/cross-compile-arm64-artifacts/arm64_pb_install/lib/`).
+
+## Notes on the issues during cross compiling (X86 -> RISC-V):
+
+1. ` undefined reference to `google::protobuf::internal::Release_CompareAndSwap(long volatile*, long, long)'`
+
+Solution: https://github.com/protocolbuffers/protobuf/issues/3937
+
+2. `configure: error: in /home/yixue/cross-compile-riscv64-artifacts/protobuf-c-1.4.1/riscv64_build':
+configure: error: C compiler cannot create executables`
+
+Solution: commented out `pkg-config` as shown below. The reason is that `pkd-config` is not found in the PATH environment variable. When crossing compiling to aarch64, it can be found in `urs/bin` (same path as TOOLCHAIN_PATH) so it's already included. If needed, we'll add back the `pkg-config` and update the PATH environment variable to find it for RISC-V cross compiling environment.
+
+```shell
+	# in build_protobuf.sh
+	CC=riscv64-unknown-linux-gnu-gcc \
+    CXX=riscv64-unknown-linux-gnu-g++ \
+    # CPPFLAGS="pkg-config --cflags protobuf" \
+    # LDFLAGS="pkg-config --libs protobuf" \
+    ../configure --prefix=$BUILD_ROOT_DIR/riscv64_pb_install \
+    --enable-static --disable-protoc --host=riscv64-unknown-linux-gnu
+```
