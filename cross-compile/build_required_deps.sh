@@ -8,11 +8,9 @@ main () {
 
     ./build_libnet.sh
 
-    ./build_nl.sh
+    ./build_libnl.sh
 
     ./build_libcap.sh
-
-    ./build_criu.sh
 }
 
 main

@@ -12,19 +12,24 @@ export PKG_CONFIG_PATH=$BUILD_ROOT_DIR/riscv64_pb_install/lib/pkgconfig:$PKG_CON
 
 make mrproper
 
-file="/home/yixue/criu/compel/plugins/include/uapi/std/syscall-aux.S"
+file="$CRIU_ROOT_DIR/compel/plugins/include/uapi/std/syscall-aux.S"
 if [ -f "$file" ] ; then
     rm "$file"
 fi
 
-file="/home/yixue/criu/compel/plugins/include/uapi/std/syscall-aux.h"
+file="$CRIU_ROOT_DIR/compel/plugins/include/uapi/std/syscall-aux.h"
 if [ -f "$file" ] ; then
     rm "$file"
 fi
+
+
+CFLAGS=$(pkg-config --cflags libprotobuf-c)
+CFLAGS+=" -I$INCLUDE_DIR_CC -L$LIB_DIR_CC"
+
 
 LDFLAGS=$(pkg-config --libs libprotobuf-c)
 # LDFLAGS+=" -rpath /usr/aarch64-linux-gnu/lib"
-LDFLAGS+=" -rpath /home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuite-14.9.0-2022.08.0-x86_64-linux-ubuntu14/sysroot/lib"
+LDFLAGS+=" -rpath $TOOLCHAIN_LIB_DIR"
 
 # V=1 \
 # ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu- \
@@ -32,9 +37,9 @@ LDFLAGS+=" -rpath /home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuit
 # LDFLAGS=$LDFLAGS \
 # make -f Makefile-CC
 
-V=1 \
-ARCH=riscv64 CROSS_COMPILE=riscv64-unknown-linux-gnu- \
-CFLAGS=$(pkg-config --cflags libprotobuf-c) \
+# V=1 \
+ARCH=riscv64 \
+CROSS_COMPILE=riscv64-unknown-linux-gnu- \
+CFLAGS=$CFLAGS \
 LDFLAGS=$LDFLAGS \
-make -f Makefile-CC
-
+make

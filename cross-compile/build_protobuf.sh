@@ -133,11 +133,11 @@ download_extract () {
 
 main () {
     
-    # download_extract
+    download_extract
     
-    # measure_func_time build_protobuf_x86_64
+    measure_func_time build_protobuf_x86_64
 
-    # measure_func_time build_protobufC_x86_64 
+    measure_func_time build_protobufC_x86_64 
 
     case $TARGET_ARCH in
         "aarch64" | "arm64")
