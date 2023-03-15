@@ -59,7 +59,7 @@ struct user_vfp_exc {
 #define REG_RES(regs)	      ((regs).ARM_r0)
 #define REG_IP(regs)	      ((regs).ARM_pc)
 #define SET_REG_IP(regs, val) ((regs).ARM_pc = (val))
-#define REG_SP(regs)	      ((regs).ARM_sp)
+#define REG_GET_SP(regs)	      ((regs).ARM_sp)
 #define REG_SYSCALL_NR(regs)  ((regs).ARM_r7)
 
 #define user_regs_native(pregs) true

@@ -60,9 +60,7 @@ typedef struct __riscv_d_ext_state user_fpregs_struct_t;
 #define REG_IP(registers)	  ((uint64_t)(registers).pc)
 #define SET_REG_IP(registers, val) ((registers).pc = (val))
 
-// #ifndef REG_SP
 #define REG_GET_SP(registers)	  ((uint64_t)((registers).sp))
-// #endif
 
 #define REG_SYSCALL_NR(registers) ((uint64_t)(registers).a7)
 
