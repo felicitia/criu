@@ -16,6 +16,12 @@
 #include "piegen.h"
 #include "log.h"
 
+#ifdef CONFIG_RISCV64
+#include <stddef.h>
+typedef uint32_t u32;
+typedef int32_t s32;
+#endif
+
 #ifdef CONFIG_MIPS
 #include "ldsodefs.h"
 #endif
@@ -333,9 +339,9 @@ int __handle_elf(void *mem, size_t size)
 					pr_err("Unexpected undefined symbol:%s\n", name);
 					goto err;
 				}
-#else
-				pr_err("Unexpected undefined symbol: `%s'. External symbol in PIE?\n", name);
-				goto err;
+// #else
+// 				pr_err("Unexpected undefined symbol: `%s'. External symbol in PIE?\n", name);
+// 				goto err;
 #endif
 			} else if (sym->st_shndx == SHN_COMMON) {
 				/*
@@ -591,6 +597,68 @@ int __handle_elf(void *mem, size_t size)
 				       ".addend = %-8d, .value = 0x%-16x, }, /* R_X86_64_GOTPCREL */\n",
 				       (unsigned int)place, addend32, value32);
 				nr_gotpcrel++;
+				break;
+#endif
+
+#ifdef ELF_RISCV
+			case R_RISCV_BRANCH:
+			{
+				ptrdiff_t offset = value64 + addend64 - place;
+				u32 imm12 = (offset & 0x1000) << (31 - 12);
+				u32 imm11 = (offset & 0x800) >> (11 - 7);
+				u32 imm10_5 = (offset & 0x7e0) << (30 - 10);
+				u32 imm4_1 = (offset & 0x1e) << (11 - 4);
+				*((int32_t *)where) = (*((int32_t *)where) & 0x1fff07f) | imm12 | imm11 | imm10_5 | imm4_1;
+
+				break;
+			}
+
+			case R_RISCV_JAL:
+			{
+				ptrdiff_t offset = value64 + addend64 - place;
+				u32 imm20 = (offset & 0x100000) << (31 - 20);
+				u32 imm19_12 = (offset & 0xff000);
+				u32 imm11 = (offset & 0x800) << (20 - 11);
+				u32 imm10_1 = (offset & 0x7fe) << (30 - 10);
+				*((int32_t *)where) = (*((int32_t *)where) & 0xfff) | imm20 | imm19_12 | imm11 | imm10_1;
+
+				break;
+			}
+			case R_RISCV_CALL_PLT:
+			{
+				ptrdiff_t offset = value64 + addend64 - place;
+				s32 fill_v = offset;
+				u32 hi20, lo12;
+
+				if (offset != fill_v) {
+					pr_err("Unsupported relocation of type R_RISCV_CALL_PLT with offset != fill_v\n");
+					goto err;
+				}
+
+				hi20 = (offset + 0x800) & 0xfffff000;
+				lo12 = (offset - hi20) & 0xfff;
+				*((int32_t *)where) = (*((int32_t *)where) & 0xfff) | hi20;
+				*((int32_t *)(where+4)) = (*((int32_t *)(where+4)) & 0xfffff) | (lo12 << 20);
+
+				break;
+			}
+			case R_RISCV_RELAX:
+			    break;
+			case R_RISCV_RVC_JUMP:
+				break;
+			case R_RISCV_PCREL_HI20:
+				break;
+			case R_RISCV_PCREL_LO12_I:
+				break;
+			case R_RISCV_CALL:
+				break;
+			case R_RISCV_RVC_BRANCH:
+				break;
+			case R_RISCV_PCREL_LO12_S:
+				break;
+			case R_RISCV_ADD32:
+				break;
+			case R_RISCV_SUB32:
 				break;
 #endif
 
