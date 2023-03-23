@@ -19,7 +19,7 @@ unsigned __page_shift = 0;
  */
 const char code_syscall[] = {
     0x73, 0x00, 0x00, 0x00, /* ecall */
-    0x73, 0x01, 0x00, 0x00  /* ebreak */
+    0x73, 0x00, 0x10, 0x00  /* ebreak */
 };
 
 static const int code_syscall_aligned = round_up(sizeof(code_syscall), sizeof(long));
