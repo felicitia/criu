@@ -1,7 +1,8 @@
 #!/bin/bash
 
+TOOLCHAIN_ROOT="/home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuite-14.9.0-2022.12.0"
 # the path that contains cross compiling toolchain binaries, e.g., riscv64-unknown-linux-gnu-gcc, riscv64-unknown-linux-gnu-ld
-TOOLCHAIN_PATH="/home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuite-14.9.0-2022.08.0-x86_64-linux-ubuntu14/bin" 
+TOOLCHAIN_PATH="$TOOLCHAIN_ROOT/bin" 
 # TOOLCHAIN_PATH="usr/bin"
 
 TARGET_ARCH="riscv64"
@@ -20,9 +21,10 @@ mkdir -p $BUILD_ROOT_DIR
 # the path should be consistent with the prefix specified in the build scripts (e.g., build_protobuf.sh)
 INCLUDE_DIR_CC="$BUILD_ROOT_DIR/riscv64_pb_install/include"
 LIB_DIR_CC="$BUILD_ROOT_DIR/riscv64_pb_install/lib"
+TOOLCHAIN_INCLUDE_DIR="$TOOLCHAIN_ROOT/sysroot/usr/include"
 
 # the directory that contains the toolchain libraries, e.g., libpthread.so.0
-TOOLCHAIN_LIB_DIR="/home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuite-14.9.0-2022.08.0-x86_64-linux-ubuntu14/sysroot/lib"
+TOOLCHAIN_LIB_DIR="$TOOLCHAIN_ROOT/sysroot/lib"
 
 export PATH=$TOOLCHAIN_PATH:$PATH
 
