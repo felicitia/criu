@@ -5,9 +5,8 @@ typedef struct {
 	int counter;
 } atomic_t;
 
-/* Copied from the Linux header arch/arm/include/asm/barrier.h */
 
-#define smp_mb() asm volatile("dmb ish" : : : "memory")
+#define smp_mb() asm volatile("fence rw,rw" : : : "memory")
 
 /* Copied from the Linux kernel header arch/arm64/include/asm/atomic.h */
 
@@ -21,20 +20,21 @@ static inline void atomic_set(atomic_t *v, int i)
 	v->counter = i;
 }
 
-#define atomic_get atomic_read
+// #define atomic_get atomic_read
 
 static inline int atomic_add_return(int i, atomic_t *v)
 {
 	unsigned long tmp;
 	int result;
 
-	asm volatile("1:	ldxr	%w0, %2\n"
-		     "	add	%w0, %w0, %w3\n"
-		     "	stlxr	%w1, %w0, %2\n"
-		     "	cbnz	%w1, 1b"
-		     : "=&r"(result), "=&r"(tmp), "+Q"(v->counter)
-		     : "Ir"(i)
-		     : "cc", "memory");
+	asm volatile(
+		"1: lr.w %0, %2\n"
+		" add %0, %0, %3\n"
+		" sc.w %1, %0, %2\n"
+		" bnez %1, 1b"
+		: "=&r"(result), "=&r"(tmp), "+A"(v->counter)
+		: "Ir"(i)
+		: "memory");
 
 	smp_mb();
 	return result;
@@ -45,13 +45,14 @@ static inline int atomic_sub_return(int i, atomic_t *v)
 	unsigned long tmp;
 	int result;
 
-	asm volatile("1:	ldxr	%w0, %2\n"
-		     "	sub	%w0, %w0, %w3\n"
-		     "	stlxr	%w1, %w0, %2\n"
-		     "	cbnz	%w1, 1b"
-		     : "=&r"(result), "=&r"(tmp), "+Q"(v->counter)
-		     : "Ir"(i)
-		     : "cc", "memory");
+	asm volatile(
+		"1: lr.w %0, %2\n"
+		" sub %0, %0, %3\n"
+		" sc.w %1, %0, %2\n"
+		" bnez %1, 1b"
+		: "=&r"(result), "=&r"(tmp), "+A"(v->counter)
+		: "Ir"(i)
+		: "memory");
 
 	smp_mb();
 	return result;
@@ -72,12 +73,7 @@ static inline int atomic_dec(atomic_t *v)
 	return atomic_sub_return(1, v) + 1;
 }
 
-/* true if the result is 0, or false for all other cases. */
-#define atomic_dec_and_test(v) (atomic_sub_return(1, v) == 0)
-#define atomic_dec_return(v)   (atomic_sub_return(1, v))
-
-#define atomic_inc_return(v) (atomic_add_return(1, v))
-
+//  atomically compare and exchange a value in a memory location
 static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
 {
 	unsigned long tmp;
@@ -85,19 +81,24 @@ static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
 
 	smp_mb();
 
-	asm volatile("// atomic_cmpxchg\n"
-		     "1:	ldxr	%w1, %2\n"
-		     "	cmp	%w1, %w3\n"
-		     "	b.ne	2f\n"
-		     "	stxr	%w0, %w4, %2\n"
-		     "	cbnz	%w0, 1b\n"
-		     "2:"
-		     : "=&r"(tmp), "=&r"(oldval), "+Q"(ptr->counter)
-		     : "Ir"(old), "r"(new)
-		     : "cc");
+	asm volatile(
+		"1: lr.w %0, %2\n"
+		" bne %0, %3, 2f\n"
+		" sc.w %1, %4, %2\n"
+		" bnez %1, 1b\n"
+		"2:"
+		: "=&r"(oldval), "=&r"(tmp), "+A"(ptr->counter)
+		: "r"(old), "r"(new)
+		: "memory");
 
 	smp_mb();
 	return oldval;
 }
+
+/* true if the result is 0, or false for all other cases. */
+#define atomic_dec_and_test(v) (atomic_sub_return(1, v) == 0)
+#define atomic_dec_return(v)   (atomic_sub_return(1, v))
+
+#define atomic_inc_return(v) (atomic_add_return(1, v))
 
 #endif /* __CR_ATOMIC_H__ */
