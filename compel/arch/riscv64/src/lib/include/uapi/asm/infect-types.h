@@ -48,8 +48,14 @@ typedef struct {
 	uint64_t t6;
 } user_regs_struct_t;
 
-// reusing __riscv_d_ext_state struct (double-precision floating-point state) defined in Linux kernel header arch/riscv/include/uapi/asm/ptrace.h
-typedef struct __riscv_d_ext_state user_fpregs_struct_t;
+/*
+	reusing __riscv_d_ext_state struct (double-precision floating-point state) 
+	defined in Linux kernel header arch/riscv/include/uapi/asm/ptrace.h
+*/
+typedef struct {
+	uint64_t d_regs[32];
+	__u32 fcsr;
+}user_fpregs_struct_t;
 
 #define __compel_arch_fetch_thread_area(tid, th) 0
 #define compel_arch_fetch_thread_area(tctl)	 0
