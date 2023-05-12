@@ -8,7 +8,7 @@ typedef struct {
 
 #define smp_mb() asm volatile("fence rw,rw" : : : "memory")
 
-/* Copied from the Linux kernel header arch/arm64/include/asm/atomic.h */
+/* Copied from the Linux kernel header arch/riscv64/include/asm/atomic.h */
 
 static inline int atomic_read(const atomic_t *v)
 {

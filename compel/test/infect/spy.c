@@ -34,6 +34,7 @@ static int do_infection(int pid)
 
 	printf("Stopping task\n");
 	state = compel_stop_task(pid);
+	printf("state after stopping task: %d\n", state);
 	if (state < 0)
 		err_and_ret("Can't stop task");
 
@@ -59,6 +60,7 @@ static int do_infection(int pid)
 	if (compel_infect(ctl, 1, sizeof(int)))
 		err_and_ret("Can't infect victim");
 
+	printf("Finished compel_infect\n");
 	/*
 	 * Now get the area with arguments and run two
 	 * commands one by one.
@@ -113,7 +115,7 @@ int main(int argc, char **argv)
 	}
 
 	pid = vfork();
-	if (pid == 0) {
+	if (pid == 0) { //  checks if the current process is the child process created by vfork()
 		close(p_in[1]);
 		dup2(p_in[0], 0);
 		close(p_in[0]);
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
 	printf("Infecting the victim\n");
 	if (do_infection(pid))
 		return 1;
-
+	printf("Finished infecting\n");
 	/*
 	 * Tell the victim some more stuff to check it's alive
 	 */
@@ -178,8 +180,8 @@ int main(int argc, char **argv)
 	printf("Checking the result\n");
 
 	/* These two came from parasite */
-	err = chk(p_out[0], 138);
-	err |= chk(p_out[0], 403);
+	err = chk(p_out[0], 138); // this is 137 after increasing (+1) using parasite code's command PARASITE_CMD_INC
+	err |= chk(p_out[0], 403); // this is 404 after decreasing (-1) using parasite code's command PARASITE_CMD_DEC
 
 	/* These two came from post-infect */
 	err |= chk(p_out[0], 1234);

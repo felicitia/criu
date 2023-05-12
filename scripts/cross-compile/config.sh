@@ -1,6 +1,8 @@
 #!/bin/bash
 
 TOOLCHAIN_ROOT="/home/yixue/riscv-toolchain/riscv64-unknown-linux-gnu-toolsuite-14.9.0-2022.12.0"
+# TOOLCHAIN_ROOT="/opt/riscv64"
+
 # the path that contains cross compiling toolchain binaries, e.g., riscv64-unknown-linux-gnu-gcc, riscv64-unknown-linux-gnu-ld
 TOOLCHAIN_PATH="$TOOLCHAIN_ROOT/bin" 
 # TOOLCHAIN_PATH="usr/bin"
