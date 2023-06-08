@@ -10,52 +10,20 @@
 #define SIGMAX_OLD 31
 
 /*
- * Copied from the Linux kernel header arch/riscv/include/uapi/asm/ptrace.h but modified to 64bit
+ * reusing user_regs_struct from the Linux kernel header arch/riscv/include/uapi/asm/ptrace.h 
+ * general purpose registers
  */
-
-typedef struct {
-	uint64_t pc;
-	uint64_t ra;
-	uint64_t sp;
-	uint64_t gp;
-	uint64_t tp;
-	uint64_t t0;
-	uint64_t t1;
-	uint64_t t2;
-	uint64_t s0;
-	uint64_t s1;
-	uint64_t a0;
-	uint64_t a1;
-	uint64_t a2;
-	uint64_t a3;
-	uint64_t a4;
-	uint64_t a5;
-	uint64_t a6;
-	uint64_t a7;
-	uint64_t s2;
-	uint64_t s3;
-	uint64_t s4;
-	uint64_t s5;
-	uint64_t s6;
-	uint64_t s7;
-	uint64_t s8;
-	uint64_t s9;
-	uint64_t s10;
-	uint64_t s11;
-	uint64_t t3;
-	uint64_t t4;
-	uint64_t t5;
-	uint64_t t6;
-} user_regs_struct_t;
+typedef struct user_regs_struct user_regs_struct_t;
 
 /*
 	reusing __riscv_d_ext_state struct (double-precision floating-point state) 
 	defined in Linux kernel header arch/riscv/include/uapi/asm/ptrace.h
-*/
-typedef struct {
-	uint64_t d_regs[32];
+	struct __riscv_d_ext_state {
+	__u64 f[32];
 	__u32 fcsr;
-}user_fpregs_struct_t;
+};
+*/
+typedef struct __riscv_d_ext_state user_fpregs_struct_t;
 
 #define __compel_arch_fetch_thread_area(tid, th) 0
 #define compel_arch_fetch_thread_area(tctl)	 0

@@ -76,8 +76,9 @@ int sigreturn_prep_regs_plain(struct rt_sigframe *sigframe, user_regs_struct_t *
     sigframe->uc.uc_mcontext.__gregs[31] = regs->t6;
 
 	// Copy the FP registers from user_fpregs_struct_t structure to rt_sigframe
-    memcpy(sigframe->uc.uc_mcontext.__fpregs.__d.__f, fpregs->d_regs, sizeof(fpregs->d_regs));
-    sigframe->uc.uc_mcontext.__fpregs.__d.__fcsr = fpregs->fcsr;
+    memcpy(sigframe->uc.uc_mcontext.__fpregs.__d.__f, fpregs->f, sizeof(fpregs->f));
+    
+	sigframe->uc.uc_mcontext.__fpregs.__d.__fcsr = fpregs->fcsr;
 
 	return 0;
 }
@@ -90,6 +91,7 @@ int sigreturn_prep_fpu_frame_plain(struct rt_sigframe *sigframe, struct rt_sigfr
 }
 
 void print_user_regs_struct(user_regs_struct_t *regs) {
+	pr_info("printing GP regs...\n");
     pr_info("pc: 0x%016lx\n", regs->pc);
     pr_info("ra: 0x%016lx\n", regs->ra);
     pr_info("sp: 0x%016lx\n", regs->sp);
@@ -124,6 +126,14 @@ void print_user_regs_struct(user_regs_struct_t *regs) {
     pr_info("t6: 0x%016lx\n", regs->t6);
 }
 
+void print_user_fpregs_struct(user_fpregs_struct_t *fpregs) {
+    int i;
+	pr_info("printing FP regs...\n");
+    for(i = 0; i < 32; i++) {
+        pr_info("f[%d] = %llu\n", i, fpregs->f[i]);
+    }
+    pr_info("fcsr = %u\n", fpregs->fcsr);
+}
 /*
 	fetch the general-purpose and floating-point registers of a given process. 
 	save_regs_t function pointer is used to save the fetched registers.
@@ -151,7 +161,8 @@ int compel_get_task_regs(pid_t pid, user_regs_struct_t *regs, user_fpregs_struct
 		pr_perror("Failed to obtain FPU registers for %d", pid);
 		goto err;
 	}
-	// print_user_regs_struct(regs);
+	print_user_regs_struct(regs);
+	print_user_fpregs_struct(fpsimd);
 	ret = save(arg, regs, fpsimd);
 	pr_info("compel_get_task_regs ret: %d\n", ret);
 err:
@@ -218,10 +229,12 @@ void *remote_mmap(struct parasite_ctl *ctl, void *addr, size_t length, int prot,
 void parasite_setup_regs(unsigned long new_ip, void *stack, user_regs_struct_t *regs)
 {
 	pr_info("~RISCV64~ Executing function: %s in file: %s\n", __func__, __FILE__);
-
+	
 	regs->pc = new_ip;
 	if (stack)
 		regs->sp = (unsigned long)stack;
+
+	pr_info("the regs->pc is %lx, regs->sp is %lx\n", regs->pc, regs->sp);
 }
 /*
 	copied from aarch64 without the check yet
@@ -245,8 +258,8 @@ int arch_fetch_sas(struct parasite_ctl *ctl, struct rt_sigframe *s)
 	int err;
 	pr_info("~RISCV64~ Executing function: %s in file: %s\n", __func__, __FILE__);
 
-	pr_info("__NR_sigaltstack is: %d\n", __NR_sigaltstack);
 	err = compel_syscall(ctl, __NR_sigaltstack, &ret, 0, (unsigned long)&s->uc.uc_stack, 0, 0, 0, 0);
+	pr_info("after compel_syscall, s->uc.uc_stack is %p\n", (void*)&s->uc.uc_stack);
 	return err ? err : ret;
 }
 
@@ -263,11 +276,37 @@ int arch_fetch_sas(struct parasite_ctl *ctl, struct rt_sigframe *s)
  * "load and store effective addresses, which are 64bits, must have bits
  * 63–48 all equal to bit 47, or else a page-fault exception will occur."
 */
-#define TASK_SIZE 0x800000000000UL
+#define TASK_SIZE 0x800000000000UL // hardcoded for SV48 MMU, will change later
 
 unsigned long compel_task_size(void)
 {
 	pr_info("~RISCV64~ Executing function: %s in file: %s\n", __func__, __FILE__);
 	pr_info("Returning TASK_SIZE: %lx\n",TASK_SIZE);
 	return TASK_SIZE;
+}
+
+/*
+ * Set task registers (overwrites weak function)
+ */
+int ptrace_set_regs(int pid, user_regs_struct_t *regs)
+{
+	struct iovec iov;
+	int ret;
+
+	pr_info("~RISCV64~ Executing function: %s in file: %s\n", __func__, __FILE__);
+	pr_debug("ptrace_set_regs: pid=%d\n", pid);
+
+	iov.iov_base = regs;
+	iov.iov_len = sizeof(user_regs_struct_t);
+	// pr_debug("GP registers BEFORE ptrace PTRACE_SETREGSET\n");
+	// print_user_regs_struct(regs);
+	ret = ptrace(PTRACE_SETREGSET, pid, NT_PRSTATUS, &iov);
+	pr_debug("return value after ptrace in ptrace_set_regs: %d\n", ret);
+	// if ((ret = ptrace(PTRACE_GETREGSET, pid, NT_PRSTATUS, &iov))) {
+	// 	pr_perror("Failed to obtain CPU registers for %d", pid);
+	// 	return ret;
+	// }
+	// pr_debug("GP registers AFTER ptrace PTRACE_SETREGSET\n");
+	// print_user_regs_struct(regs);
+	return ret;
 }

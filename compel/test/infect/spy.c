@@ -123,8 +123,9 @@ int main(int argc, char **argv)
 		dup2(p_out[1], 1);
 		close(p_out[1]);
 		close(p_err[0]);
-		dup2(p_err[1], 2);
+		// dup2(p_err[1], 2);
 		close(p_err[1]);
+		// freopen("child_errors.txt", "w", stderr);
 		execl("./victim", "victim", NULL);
 		exit(1);
 	}
@@ -142,7 +143,6 @@ int main(int argc, char **argv)
 	i = 42;
 	if (write(p_in[1], &i, sizeof(i)) != sizeof(i))
 		return 1;
-
 	printf("Checking the victim alive\n");
 	err = chk(p_out[0], 1);
 	if (err)

@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/ucontext.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -440,6 +441,9 @@ int compel_resume_task_sig(pid_t pid, int orig_st, int st, int stop_signo)
 	return ret;
 }
 
+/***
+ * generates a Unix domain socket address, based on the provided key.
+***/
 static int gen_parasite_saddr(struct sockaddr_un *saddr, int key)
 {
 	int sun_len;
@@ -450,11 +454,11 @@ static int gen_parasite_saddr(struct sockaddr_un *saddr, int key)
 	snprintf(saddr->sun_path, UNIX_PATH_MAX, "X/crtools-pr-%d-%" PRIx64, key, compel_run_id);
 
 	sun_len = SUN_LEN(saddr);
-	*saddr->sun_path = '\0';
-
+	*saddr->sun_path = '\0'; // making the first character of the sun_path array to be a null byte to indicate an abstract socket (a socket not tied to a filesystem path)
+	pr_info("returning sun_len = %d \n", sun_len);
 	return sun_len;
 }
-
+// generates address for a socket, binds it to the provided socket descriptor, and puts the socket into a listening state. 
 static int prepare_tsock(struct parasite_ctl *ctl, pid_t pid, struct parasite_init_args *args)
 {
 	int ssock = -1;
@@ -467,13 +471,16 @@ static int prepare_tsock(struct parasite_ctl *ctl, pid_t pid, struct parasite_in
 
 	ssock = ctl->ictx.sock;
 	sk_len = sizeof(addr);
+	pr_info("sk_len = %u\n", sk_len);
 
 	if (ssock == -1) {
 		pr_err("No socket in ictx\n");
 		goto err;
+	}else{
+		pr_info("ssock = %d\n", ssock);
 	}
 
-	if (getsockname(ssock, (struct sockaddr *)&addr, &sk_len) < 0) {
+	if (getsockname(ssock, (struct sockaddr *)&addr, &sk_len) < 0) { // getsockname returns 0 if success
 		pr_perror("Unable to get name for a socket");
 		return -1;
 	}
@@ -491,20 +498,25 @@ static int prepare_tsock(struct parasite_ctl *ctl, pid_t pid, struct parasite_in
 	}
 
 	/* Check a case when parasite can't initialize a command socket */
-	if (ctl->ictx.flags & INFECT_FAIL_CONNECT)
+	if (ctl->ictx.flags & INFECT_FAIL_CONNECT){
+		pr_info("flag INFECT_FAIL_CONNECT is set\n");
 		args->h_addr_len = gen_parasite_saddr(&args->h_addr, getpid() + 1);
+	}	
 
 	/*
 	 * Set to -1 to prevent any accidental misuse. The
 	 * only valid user of it is accept_tsock().
 	 */
 	ctl->tsock = -ssock;
+	pr_info("ctl->tsock is set to: %d\n", -ssock);
 	return 0;
 err:
 	close_safe(&ssock);
 	return -1;
 }
 
+// sets up a signal handler for the SIGCHLD signal in the parent process,
+// SIGCHLD is sent to parent when its child process terminates, is interrupted by a signal, or resumes after being interrupted by a signal
 static int setup_child_handler(struct parasite_ctl *ctl)
 {
 	struct sigaction sa = {
@@ -539,10 +551,11 @@ static int parasite_run(pid_t pid, int cmd, unsigned long ip, void *stack, user_
 			struct thread_ctx *octx)
 {
 	k_rtsigset_t block;
+	int ret;
 
 	pr_info("Executing function: %s in file: %s\n", __func__, __FILE__);
 	pr_info("ptrace cmd is: %d, pid is: %d, ip is: %lx, stack is: %p\n", cmd, pid, ip, stack);
-	print_user_regs_struct(regs);
+	// print_user_regs_struct(regs);
 
 	ksigfillset(&block);
 	/*
@@ -550,7 +563,7 @@ static int parasite_run(pid_t pid, int cmd, unsigned long ip, void *stack, user_
 	 * will be reset to the default one.
 	 */
 	ksigdelset(&block, SIGTRAP);
-	if (ptrace(PTRACE_SETSIGMASK, pid, sizeof(k_rtsigset_t), &block)) {
+	if (ptrace(PTRACE_SETSIGMASK, pid, sizeof(k_rtsigset_t), &block)) { // PTRACE_SETSIGMASK sets the victim's signal mask (the set of signals currently being blocked) to the value pointed to by &block.
 		pr_perror("Can't block signals for %d", pid);
 		goto err_sig;
 	}
@@ -560,8 +573,11 @@ static int parasite_run(pid_t pid, int cmd, unsigned long ip, void *stack, user_
 		pr_perror("Can't set registers for %d", pid);
 		goto err_regs;
 	}
-	
-	if (ptrace(cmd, pid, NULL, NULL)) {
+	errno = 0;
+	ret = ptrace(cmd, pid, NULL, NULL);
+	pr_debug("ptrace return value: %d, errno is: %s\n", ret, strerror(errno));
+
+	if (ret) {
 		pr_perror("Can't run parasite at %d", pid);
 		goto err_cont;
 	}
@@ -670,10 +686,17 @@ int compel_execute_syscall(struct parasite_ctl *ctl, user_regs_struct_t *regs, c
 		return -1;
 	}
 	pr_debug("parasite_run is about to execute in function %s\n", __func__);
-	err = parasite_run(pid, PTRACE_CONT, ctl->ictx.syscall_ip, 0, regs, &ctl->orig);
-	if (!err)
+	// continue execution of the traced process at the location of the injected system call, with the provided register values
+	err = parasite_run(pid, PTRACE_CONT, ctl->ictx.syscall_ip, 0, regs, &ctl->orig); 
+	if (!err){
+		// parasite_trap is part of the parasite code execution workflow. 
+		// It waits for the traced process to hit a trap (or interrupt), 
+		// checks if the interrupt was expected (i.e., it occurred because of the injected system call), 
+		//and then restores the original context of the traced process
 		err = parasite_trap(ctl, pid, regs, &ctl->orig, false);
-
+	}
+		
+	//  write data to the memory space of the traced process
 	if (ptrace_poke_area(pid, (void *)code_orig, (void *)ctl->ictx.syscall_ip, sizeof(code_orig))) {
 		pr_err("Can't restore syscall blob (pid: %d)\n", ctl->rpid);
 		err = -1;
@@ -720,6 +743,7 @@ static int parasite_init_daemon(struct parasite_ctl *ctl)
 	pid_t pid = ctl->rpid;
 	user_regs_struct_t regs;
 	struct ctl_msg m = {};
+	int ret;
 
 	pr_info("Executing function: %s in file: %s\n", __func__, __FILE__);
 
@@ -728,6 +752,7 @@ static int parasite_init_daemon(struct parasite_ctl *ctl)
 	args = compel_parasite_args(ctl, struct parasite_init_args); // return ctl->args;
 
 	args->sigframe = (uintptr_t)ctl->rsigframe;
+	pr_info("ctl-->rsigframe's address is: %p\n", (void*)ctl->rsigframe);
 	args->log_level = compel_log_get_loglevel();
 #ifdef ARCH_HAS_LONG_PAGES
 	args->page_size = PAGE_SIZE;
@@ -745,9 +770,12 @@ static int parasite_init_daemon(struct parasite_ctl *ctl)
 
 	regs = ctl->orig.regs;
 	pr_debug("parasite_run is about to execute in function %s\n", __func__);
-	if (parasite_run(pid, PTRACE_CONT, ctl->parasite_ip, ctl->rstack, &regs, &ctl->orig))
+	pr_debug("parasite_ip is: %lx\n", ctl->parasite_ip);
+	ret = parasite_run(pid, PTRACE_CONT, ctl->parasite_ip, ctl->rstack, &regs, &ctl->orig);
+	pr_debug("ret after parasite_run: %d\n", ret);
+	if (ret){
 		goto err;
-	
+	}
 	pr_info("before futex\n");
 	futex_wait_while_eq(&args->daemon_connected, 0);
 	pr_info("after futex\n");
@@ -919,15 +947,16 @@ static int parasite_memfd_exchange(struct parasite_ctl *ctl, unsigned long size,
 		pr_perror("Fail to truncate memfd for parasite");
 		goto err_cure;
 	}
-
+	pr_debug("size: %ld, fd: %d\n", size, fd);
 	ctl->remote_map = remote_mmap(ctl, NULL, size, remote_prot, MAP_FILE | MAP_SHARED, fd, 0);
 	pr_debug("after remote_mmap, ctl->remote_map is %p\n", ctl->remote_map);
 	if (!ctl->remote_map) {
 		pr_err("Can't rmap memfd for parasite blob\n");
 		goto err_curef;
 	}
-
+	pr_debug("size: %ld, lfd: %d\n", size, lfd);
 	ctl->local_map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FILE, lfd, 0);
+	pr_debug("after mmap, ctl->local_map is %p\n", ctl->local_map);
 	if (ctl->local_map == MAP_FAILED) {
 		ctl->local_map = NULL;
 		pr_perror("Can't lmap memfd for parasite blob");
@@ -1124,6 +1153,7 @@ int compel_infect_no_daemon(struct parasite_ctl *ctl, unsigned long nr_threads, 
 	ctl->cmd = ctl->local_map + ctl->pblob.hdr.cmd_off;
 	ctl->args = ctl->local_map + ctl->pblob.hdr.args_off;
 
+	pr_info("ctl->cmd is %p, ctl->args is %p\n", ctl->cmd, ctl->args);
 	/*
 	 * args must be 4 bytes aligned as we use futexes() on them. It is
 	 * already the case, as args follows the GOT table, which is 8 bytes
@@ -1135,6 +1165,7 @@ int compel_infect_no_daemon(struct parasite_ctl *ctl, unsigned long nr_threads, 
 	}
 
 	memcpy(ctl->local_map, ctl->pblob.hdr.mem, ctl->pblob.hdr.bsize);
+	pr_info("ctl->pblob.hdr.mem is %p, ctl->pblob.hdr.bsize is %lu\n", ctl->pblob.hdr.mem, ctl->pblob.hdr.bsize);
 	compel_relocs_apply(ctl->local_map, ctl->remote_map, &ctl->pblob);
 
 	p = parasite_size;
@@ -1142,10 +1173,12 @@ int compel_infect_no_daemon(struct parasite_ctl *ctl, unsigned long nr_threads, 
 	ctl->rsigframe = ctl->remote_map + p;
 	ctl->sigframe = ctl->local_map + p;
 
+	pr_info("ctl->rsigframe is %p, ctl->sigframe is %p\n", ctl->rsigframe, ctl->sigframe);
+
 	p += RESTORE_STACK_SIGFRAME;
 	p += PARASITE_STACK_SIZE;
 	ctl->rstack = ctl->remote_map + p;
-
+	pr_info("ctl->rstack is %p\n", ctl->rstack);
 	/*
 	 * x86-64 ABI requires a 16 bytes aligned stack.
 	 * It is already the case as RESTORE_STACK_SIGFRAME is a multiple of
@@ -1375,12 +1408,30 @@ static int simple_open_proc(int pid, int mode, const char *fmt, ...)
 static void handle_sigchld(int signal, siginfo_t *siginfo, void *data)
 {
 	int pid, status;
+	ucontext_t *uc; 
+	unsigned long instruction;
 
 	pr_info("Executing function: %s in file: %s\n", __func__, __FILE__);
+	pr_err("the signal is %d\n", signal);
 
+	uc = (ucontext_t *)data;
+
+	pr_info("pc=%lx, ra=%lx, sp=%lx, gp=%lx, tp=%lx\n", 
+        uc->uc_mcontext.__gregs[0], 
+        uc->uc_mcontext.__gregs[1], 
+        uc->uc_mcontext.__gregs[2], 
+        uc->uc_mcontext.__gregs[3], 
+        uc->uc_mcontext.__gregs[4]
+    );
+
+	// check if any child process has ended. If so, it will return the PID of the child process and fill the status variable with the termination status of that process. 
+	// If no child process has ended, it will return 0 immediately.
 	pid = waitpid(-1, &status, WNOHANG);
 	if (pid <= 0)
 		return;
+
+	instruction = ptrace(PTRACE_PEEKTEXT, pid, uc->uc_mcontext.__gregs[0], NULL);
+	pr_err("Instruction at PC: 0x%lx\n", instruction);
 
 	pr_err("si_code=%d si_pid=%d si_status=%d si_errno=%d\n si_signo=%d si_uid=%d si_addr=%p\n", siginfo->si_code, siginfo->si_pid, 
 	siginfo->si_status, siginfo->si_errno, siginfo->si_signo, siginfo->si_uid, siginfo->si_addr);
@@ -1390,7 +1441,7 @@ static void handle_sigchld(int signal, siginfo_t *siginfo, void *data)
 	else if (WIFSIGNALED(status))
 		pr_err("%d was killed by %d unexpectedly: %s\n", pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
 	else if (WIFSTOPPED(status))
-		pr_err("%d was stopped by %d unexpectedly\n", pid, WSTOPSIG(status));
+		pr_err("%d was stopped by %d unexpectedly: %s\n", pid, WSTOPSIG(status), strsignal(WSTOPSIG(status)));
 
 	/* FIXME Should we exit? */
 	/* exit(1); */
@@ -1463,7 +1514,8 @@ struct parasite_ctl *compel_prepare(int pid)
 	ictx->syscall_ip = find_executable_area(pid);
 	pr_info("executable area starts at: %lx\n", ictx->syscall_ip);
 	ictx->child_handler = handle_sigchld;
-	// sigaction retrieves the current signal handler for the SIGCHLD signal and stores it in ictx->orig_handler
+	
+	//sigaction retrieves the current signal handler for the SIGCHLD signal 
 	sigaction(SIGCHLD, NULL, &ictx->orig_handler); // SIGCHLD is a signal sent to parent when one of its child processes terminates or stops
 
 	ictx->save_regs = save_regs_plain;

@@ -106,7 +106,7 @@ struct infect_ctx {
 	/*
 	 * Regs manipulation context.
 	 */
-	save_regs_t save_regs;
+	save_regs_t save_regs; // both GP registers and FP registers
 	make_sigframe_t make_sigframe;
 	void *regs_arg;
 
@@ -149,7 +149,7 @@ struct parasite_blob_desc {
 	union {
 		struct {
 			const void *mem;
-			size_t bsize;
+			size_t bsize; // size of the parasite blob, which is the compiled parasite code that will be injected into the target process
 			unsigned long parasite_ip_off;
 			unsigned long cmd_off;
 			unsigned long args_ptr_off;
