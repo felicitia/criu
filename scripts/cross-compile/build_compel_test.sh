@@ -32,3 +32,11 @@ CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 CFLAGS=$CFLAGS \
 LDFLAGS=$LDFLAGS \
 make -f Makefile-CC
+
+cd $CRIU_ROOT_DIR/compel/test/rsys
+# V=1 \
+ARCH=riscv64 \
+CROSS_COMPILE=riscv64-unknown-linux-gnu- \
+CFLAGS=$CFLAGS \
+LDFLAGS=$LDFLAGS \
+make -f Makefile-CC

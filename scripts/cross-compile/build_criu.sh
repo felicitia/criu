@@ -42,4 +42,4 @@ ARCH=riscv64 \
 CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 CFLAGS=$CFLAGS \
 LDFLAGS=$LDFLAGS \
-make
+make DEBUG=1
