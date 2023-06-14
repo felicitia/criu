@@ -40,3 +40,19 @@ CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 CFLAGS=$CFLAGS \
 LDFLAGS=$LDFLAGS \
 make -f Makefile-CC
+
+cd $CRIU_ROOT_DIR/compel/test/fdspy
+# V=1 \
+ARCH=riscv64 \
+CROSS_COMPILE=riscv64-unknown-linux-gnu- \
+CFLAGS=$CFLAGS \
+LDFLAGS=$LDFLAGS \
+make -f Makefile-CC
+
+cd $CRIU_ROOT_DIR/compel/test/stack
+# V=1 \
+ARCH=riscv64 \
+CROSS_COMPILE=riscv64-unknown-linux-gnu- \
+CFLAGS=$CFLAGS \
+LDFLAGS=$LDFLAGS \
+make -f Makefile-CC
